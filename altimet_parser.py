@@ -35,7 +35,7 @@ def time_wizard(old_list):
 
         new_time="20"+year+"-"+month+"-"+day+" "+hour+":"+min+":"+sec+"."+milsec
         new_time=calendar.timegm(time.strptime(new_time, '%Y-%m-%d %H:%M:%S.%f'))
-        x["Time"]=new_time*1000
+        x["Time"]=new_time
         newList.append(x)
     
     return newList
@@ -44,22 +44,22 @@ def time_wizard(old_list):
 valami=time_wizard(csv_to_dic(file))
 
 
-
+#itiőt átnézni , milisec -->> sec re lett állítva!
 def write_json(file_path, file_to_write):
-    file_path +=str(valami[0].get("Time")/1000)[:-2]+".json"
+    file_path +=str(valami[0].get("Time"))[:-2]+".json"
     js_file=open(file_path,'a')
     js_file.write(json.dumps(file_to_write))
     
 
 def time_repalce(input_file):
     new_list=[]
-    ezmeg=1647853258000
+    ezmeg=1648833410
     for az in input_file:    
         az["Time"]=ezmeg
-        ezmeg+=1000   
+        ezmeg+=1   
         new_list.append(az)
     return new_list
 
      
-#write_json(json_file,time_repalce(valami))
+write_json(json_file,time_repalce(valami))
 
