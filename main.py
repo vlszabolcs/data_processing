@@ -1,16 +1,16 @@
+from lib2to3.pytree import convert
 import boto3
+import calendar,time
 from boto3.dynamodb.conditions import Key, Attr
 import json
-from gpx_converter import Converter
 import csv
+
+import pandas as pd
+
+
  
 
-
-
-json_file="log/"
-altimet_json="log/1647853258.json"
-altimet_json="log/16488334.json"
-opend_json=open(altimet_json,'r')
+altimet_csv="test2/2022412165649.csv"
 
 alti_tim="Time"
 alti_lat="Latitude"
@@ -23,7 +23,7 @@ alti_alt="Altitude"
 
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('station_data')
+table = dynamodb.Table('station_test2')
 
 db_tim="sample_time"
 db_slp="sea_lv_pressure"
@@ -73,8 +73,6 @@ def calc_altitude(data_alti, data_station):
     for a in data_alti:
 
         time_in_alti=int(a[alti_tim]/milliseconder)
-       
-
 
         if time_in_alti==time_in_station:
             i+=1
@@ -95,50 +93,82 @@ def calc_altitude(data_alti, data_station):
 
     return newAlti
 
-alti_data=dic_to_list(json.load(opend_json))
-timeinval=find_last(alti_data)
+def csv_to_dic(filename):
+    dic=[] 
+    with open(filename, 'r') as data:  
+        for line in csv.DictReader(data):
+            dic.append(line)
+    return dic
+   
+def time_wizard(old_list):
+    newList=[]
 
+    for x in old_list:
+        time_in=x.get("Time")
+     
+        new_time=time_in
+        new_time=calendar.timegm(time.strptime(new_time, '%Y%m%d%H%M%S'))
+        
+
+        
+        x["Time"]=new_time
+        newList.append(x)
+
+    return newList
+
+
+def dataframe_to_gpx(input_df, output_file=None):
+        """
+        convert pandas dataframe to gpx
+        input_df: pandas dataframe
+        lats_colname: name of the latitudes column
+        longs_colname: name of the longitudes column
+        times_colname: name of the time column
+        alts_colname: name of the altitudes column
+        output_file: path of the output file
+        """
+        import gpxpy.gpx
+        gpx = gpxpy.gpx.GPX()
+
+
+        lats_colname=alti_lat,
+        longs_colname=alti_lon,
+        times_colname=alti_tim,
+        alts_colname=alti_alt,
+
+        json_df = []
+        json_df=pd.read_json(input_df)
+        # Create first track in our GPX:
+        gpx_track = gpxpy.gpx.GPXTrack()
+        gpx.tracks.append(gpx_track)
+
+        # Create first segment in our GPX track:
+        gpx_segment = gpxpy.gpx.GPXTrackSegment()
+        gpx_track.segments.append(gpx_segment)
+
+        # Create points:
+        for idx in json_df.index:
+            gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(json_df.loc[idx, lats_colname],
+                                                              json_df.loc[idx, longs_colname],
+                                                              time=pd.to_datetime(json_df.loc[idx, times_colname],unit='s') if times_colname else None,
+                                                              elevation=json_df.loc[idx, alts_colname] if alts_colname else None))
+        
+        with open(output_file, 'w') as f:
+            f.write(gpx.to_xml())
+        return gpx.to_xml()
+
+alti_data=time_wizard(csv_to_dic(altimet_csv))
+#alti_data=dic_to_list(alti_data)
+originalAlti=dataframe_to_gpx(json.dumps(alti_data),"test2/orig_alti.gpx")
+
+#alti_data=dic_to_list(alti_data)
+#alti_data=dic_to_list(json.load(opend_json))
+
+timeinval=find_last(alti_data)
 items=scan_between(timeinval[0], timeinval[1])['Items']
 station_data=dic_to_list(sorted(items,key = lambda a: a[db_tim]))
 
-
-def write_json(file_path, file_to_write):
-    file_path +="log1.json"
-    js_file=open(file_path,'a')
-    js_file.write(json.dumps(file_to_write))
-
-#write_json(json_file,calc_altitude(alti_data,station_data))
 pre_json=calc_altitude(alti_data,station_data)
-
-opendFile=open("log/log1.json",'r')
-fieldnames=pre_json[0].keys()
- 
-with open('log/test.csv', mode='w') as csv_file:
-    
-        
-    fieldnames=pre_json[0].keys()
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
-    for a in pre_json:
-         writer.writerow(a)
-    
-
-"""
-Converter(input_file='log/16488334.json').csv_to_gpx(lats_colname=alti_lat,
-                                                 longs_colname=alti_lon,
-                                                 times_colname=alti_tim,
-                                                 alts_colname=alti_alt,
-                                                 output_file='log/test1.gpx')
-
-
-
-"""
-Converter(input_file="log/16488334.json").json_to_gpx(
-                                                  lats_colname='Latitude',
-                                                 longs_colname='Longitude',
-                                                 times_colname=alti_tim,
-                                                 alts_colname="Altitude",
-                                                 output_file='log/your_output22.gpx')
-
+modAlti=dataframe_to_gpx(json.dumps(pre_json),"test2/mod_alti.gpx")
 
 print("program finished")                                                 

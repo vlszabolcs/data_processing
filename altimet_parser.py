@@ -2,8 +2,8 @@ import csv
 import calendar, time; 
 import json
 
-file="log/170322_17564900.csv"
-json_file="log/"
+file="test2/2022412165649.csv"
+json_file="test2/"
 
 
 
@@ -22,7 +22,8 @@ def time_wizard(old_list):
 
     for x in old_list:
         time_in=x.get("Time")
-
+        print(time_in)
+        """
         time_in=time_in.replace("_","")
         day=time_in[0:2]
         month=time_in[2:4]
@@ -35,9 +36,15 @@ def time_wizard(old_list):
 
         new_time="20"+year+"-"+month+"-"+day+" "+hour+":"+min+":"+sec+"."+milsec
         new_time=calendar.timegm(time.strptime(new_time, '%Y-%m-%d %H:%M:%S.%f'))
+        """
+        new_time=time_in
+        new_time=calendar.timegm(time.strptime(new_time, '%Y%m%d%H%M%S'))
+        print(new_time)
+
+        
         x["Time"]=new_time
         newList.append(x)
-    
+
     return newList
 
 
@@ -61,5 +68,5 @@ def time_repalce(input_file):
     return new_list
 
      
-write_json(json_file,time_repalce(valami))
+#write_json(json_file,time_repalce(valami))
 
